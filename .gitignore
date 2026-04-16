@@ -1,0 +1,24 @@
+# Build klasörleri
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+
+# Log dosyaları
+*.log
+log.txt
+
+# dotnet user secrets
+secrets.json
+
+# OS
+Thumbs.db
+.DS_Store
