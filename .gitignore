@@ -22,3 +22,12 @@ secrets.json
 # OS
 Thumbs.db
 .DS_Store
+
+# ActivityTracker çıktıları
+Reports/
+ActivityLog.db
+ActivityLog.db-shm
+ActivityLog.db-wal
+
+# Claude Code
+.claude/
