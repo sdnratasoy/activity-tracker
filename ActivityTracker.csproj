@@ -11,10 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.0" />
-<<<<<<< HEAD
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
   </ItemGroup>
-=======
-</ItemGroup>
->>>>>>> 4dc05d84b964d8f14d1c08561a6b5aff84069cf6
+
 </Project>
