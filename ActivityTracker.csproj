@@ -4,7 +4,6 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>dotnet-ActivityTracker-02fcfc1d-a5a1-465e-bff4-e93045b553e1</UserSecretsId>
     <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 
