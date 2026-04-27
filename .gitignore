@@ -16,18 +16,29 @@ obj/
 *.log
 log.txt
 
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Reports / output
+Reports/
+
 # dotnet user secrets
 secrets.json
 
-# OS
+# OS files
 Thumbs.db
 .DS_Store
 
-# ActivityTracker çıktıları
-Reports/
-ActivityLog.db
-ActivityLog.db-shm
-ActivityLog.db-wal
 
-# Claude Code
-.claude/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Rider / JetBrains
+.idea/
+
+# Node 
+node_modules/
