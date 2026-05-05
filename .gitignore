@@ -40,5 +40,5 @@ Thumbs.db
 # Rider / JetBrains
 .idea/
 
-# Node 
+# Node
 node_modules/

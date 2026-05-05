@@ -1,9 +1,5 @@
 using Microsoft.Data.SqlClient;
 
-/// <summary>
-/// Merkezi SQL Server ile iletişimi yönetir.
-/// VPN/ağ yoksa hızlıca false döner (Connect Timeout=3).
-/// </summary>
 public static class CentralDbHelper
 {
     private static string? _connectionString;
@@ -11,15 +7,8 @@ public static class CentralDbHelper
     public static void Configure(string connectionString) =>
         _connectionString = connectionString;
 
-    public static bool IsConfigured =>
-        !string.IsNullOrWhiteSpace(_connectionString);
+    public static bool IsConfigured => !string.IsNullOrWhiteSpace(_connectionString);
 
-    // ── Bağlantı kontrolü ────────────────────────────────────────────────────
-
-    /// <summary>
-    /// SQL Server'a ulaşılabiliyorsa true döner.
-    /// VPN yoksa 3 saniye içinde false döner.
-    /// </summary>
     public static bool CanConnect()
     {
         if (!IsConfigured) return false;
@@ -29,13 +18,8 @@ public static class CentralDbHelper
             conn.Open();
             return true;
         }
-        catch
-        {
-            return false;
-        }
+        catch { return false; }
     }
-
-    // ── Şema oluşturma (ilk çalıştırmada IT yapmak zorunda kalmadan) ─────────
 
     public static void EnsureSchemaExists()
     {
@@ -66,41 +50,33 @@ public static class CentralDbHelper
                 CREATE INDEX IX_AL_Username ON dbo.ActivityLog (Username, LogTime);
                 CREATE INDEX IX_AL_AppName  ON dbo.ActivityLog (AppName,  LogTime);
 
-                -- Power BI için günlük özet view
                 EXEC('
                     CREATE VIEW dbo.vw_DailyUsage AS
                     SELECT
-                        CAST(LogTime AS DATE)   AS LogDate,
-                        Username,
-                        ComputerName,
-                        SessionType,
-                        AppName,
-                        SUM(DurationSec)        AS TotalDurationSec,
-                        SUM(ActiveSec)          AS TotalActiveSec,
-                        SUM(IdleSec)            AS TotalIdleSec,
-                        SUM(KeyCount)           AS TotalKeys,
-                        SUM(MouseCount)         AS TotalMouse
+                        CAST(LogTime AS DATE) AS LogDate,
+                        Username, ComputerName, SessionType, AppName,
+                        SUM(DurationSec) AS TotalDurationSec,
+                        SUM(ActiveSec)   AS TotalActiveSec,
+                        SUM(IdleSec)     AS TotalIdleSec,
+                        SUM(KeyCount)    AS TotalKeys,
+                        SUM(MouseCount)  AS TotalMouse
                     FROM dbo.ActivityLog
                     GROUP BY CAST(LogTime AS DATE), Username, ComputerName, SessionType, AppName
                 ');
 
-                -- Power BI için haftalık özet view
                 EXEC('
                     CREATE VIEW dbo.vw_WeeklyUsage AS
                     SELECT
-                        DATEPART(YEAR,  LogTime)                   AS [Year],
-                        DATEPART(WEEK,  LogTime)                   AS [Week],
+                        DATEPART(YEAR, LogTime) AS [Year],
+                        DATEPART(WEEK, LogTime) AS [Week],
                         DATEADD(DAY, 1-DATEPART(WEEKDAY, CAST(LogTime AS DATE)), CAST(LogTime AS DATE)) AS WeekStart,
-                        Username,
-                        ComputerName,
-                        AppName,
-                        SUM(DurationSec)                           AS TotalDurationSec,
-                        SUM(KeyCount)                              AS TotalKeys,
-                        SUM(MouseCount)                            AS TotalMouse
+                        Username, ComputerName, AppName,
+                        SUM(DurationSec) AS TotalDurationSec,
+                        SUM(KeyCount)    AS TotalKeys,
+                        SUM(MouseCount)  AS TotalMouse
                     FROM dbo.ActivityLog
                     GROUP BY
-                        DATEPART(YEAR,  LogTime),
-                        DATEPART(WEEK,  LogTime),
+                        DATEPART(YEAR, LogTime), DATEPART(WEEK, LogTime),
                         DATEADD(DAY, 1-DATEPART(WEEKDAY, CAST(LogTime AS DATE)), CAST(LogTime AS DATE)),
                         Username, ComputerName, AppName
                 ');
@@ -109,12 +85,6 @@ public static class CentralDbHelper
         cmd.ExecuteNonQuery();
     }
 
-    // ── Toplu yazma ──────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Kayıtları tek transaction içinde SQL Server'a yazar.
-    /// Herhangi bir hata olursa exception fırlatır; çağıran rollback kararı verir.
-    /// </summary>
     public static void BulkInsert(List<ActivityRecord> records)
     {
         if (records.Count == 0) return;

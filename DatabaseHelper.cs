@@ -7,20 +7,15 @@ public static class DatabaseHelper
             Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
             "Activity_Tracker", "ActivityLog.db");
 
-    public static string ConnectionString =>
-        $"Data Source={DbPath}";
-
-    // ── Başlangıç ────────────────────────────────────────────────────────────
+    public static string ConnectionString => $"Data Source={DbPath}";
 
     public static void Initialize()
     {
         using var conn = new SqliteConnection(ConnectionString);
         conn.Open();
 
-        // WAL modu: okuma ve yazma çakışmaz, performans artar
         Execute(conn, "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
 
-        // Ana tablo
         Execute(conn, @"
             CREATE TABLE IF NOT EXISTS ActivityLog (
                 Id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,13 +33,11 @@ public static class DatabaseHelper
                 IsSynced     INTEGER DEFAULT 0
             )");
 
-        // Sorgu hızlandırma
+        MigrateColumns(conn);
+
         Execute(conn, @"
             CREATE INDEX IF NOT EXISTS IX_ActivityLog_IsSynced
                 ON ActivityLog (IsSynced)");
-
-        // Mevcut tabloya yeni kolonlar varsa ekle (migration)
-        MigrateColumns(conn);
     }
 
     private static void MigrateColumns(SqliteConnection conn)
@@ -56,26 +49,14 @@ public static class DatabaseHelper
 
     private static void TryAddColumn(SqliteConnection conn, string column, string definition)
     {
-        try
-        {
-            Execute(conn, $"ALTER TABLE ActivityLog ADD COLUMN {column} {definition}");
-        }
-        catch { /* kolon zaten varsa hata fırlatır, yoksay */ }
+        try { Execute(conn, $"ALTER TABLE ActivityLog ADD COLUMN {column} {definition}"); }
+        catch { }
     }
 
-    // ── Yazma ────────────────────────────────────────────────────────────────
-
     public static void Insert(
-        string username,
-        string computerName,
-        string sessionType,
-        string appName,
-        string windowTitle,
-        int    durationSec,
-        int    activeSec,
-        int    idleSec,
-        int    keyCount,
-        int    mouseCount)
+        string username, string computerName, string sessionType,
+        string appName,  string windowTitle,
+        int durationSec, int activeSec, int idleSec, int keyCount, int mouseCount)
     {
         using var conn = new SqliteConnection(ConnectionString);
         conn.Open();
@@ -104,9 +85,6 @@ public static class DatabaseHelper
         cmd.ExecuteNonQuery();
     }
 
-    // ── Sync için okuma / silme ───────────────────────────────────────────────
-
-    /// <summary>SQL Server'a henüz gönderilmemiş tüm kayıtları döner.</summary>
     public static List<ActivityRecord> GetPendingRecords()
     {
         var list = new List<ActivityRecord>();
@@ -122,30 +100,22 @@ public static class DatabaseHelper
             FROM   ActivityLog
             WHERE  IsSynced = 0
             ORDER  BY Id
-            LIMIT  500";   // tek seferde en fazla 500 kayıt
+            LIMIT  500";
 
         using var r = cmd.ExecuteReader();
         while (r.Read())
         {
             list.Add(new ActivityRecord(
-                r.GetInt64(0),
-                r.GetString(1),
-                r.GetString(2),
-                r.GetString(3),
-                r.GetString(4),
-                r.GetString(5),
+                r.GetInt64(0), r.GetString(1), r.GetString(2),
+                r.GetString(3), r.GetString(4), r.GetString(5),
                 r.IsDBNull(6) ? "" : r.GetString(6),
-                r.GetInt32(7),
-                r.GetInt32(8),
-                r.GetInt32(9),
-                r.GetInt32(10),
-                r.GetInt32(11)));
+                r.GetInt32(7), r.GetInt32(8), r.GetInt32(9),
+                r.GetInt32(10), r.GetInt32(11)));
         }
 
         return list;
     }
 
-    /// <summary>Başarıyla synclenen kayıtları siler (client buffer mantığı).</summary>
     public static void DeleteSyncedRecords(IEnumerable<long> ids)
     {
         var idList = string.Join(",", ids);
@@ -153,11 +123,8 @@ public static class DatabaseHelper
 
         using var conn = new SqliteConnection(ConnectionString);
         conn.Open();
-
         Execute(conn, $"DELETE FROM ActivityLog WHERE Id IN ({idList})");
     }
-
-    // ── Yardımcı ─────────────────────────────────────────────────────────────
 
     private static void Execute(SqliteConnection conn, string sql)
     {

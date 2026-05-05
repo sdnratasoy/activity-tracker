@@ -6,10 +6,9 @@ public class Worker : BackgroundService
 {
     private readonly ILogger<Worker> _logger;
 
-    // Makine bilgileri — uygulama ömrü boyunca sabit
     private readonly string _username     = Environment.UserName;
     private readonly string _computerName = Environment.MachineName;
-    private string _sessionType           = "LOCAL"; // her döngüde güncellenir
+    private string _sessionType           = "LOCAL";
 
     private string   _currentApp   = "";
     private string   _currentTitle = "";
@@ -17,16 +16,15 @@ public class Worker : BackgroundService
     private int      _activeSeconds = 0;
     private int      _idleSeconds   = 0;
 
-    // Periyodik kayıt: 60 sn
     private DateTime _lastFlushTime  = DateTime.Now;
     private const int FlushIntervalSec = 60;
 
-    // Sync: 5 dk
-    private DateTime _lastSyncTime  = DateTime.MinValue; // başlangıçta hemen sync dene
+    private DateTime _lastSyncTime  = DateTime.MinValue;
     private const int SyncIntervalMin = 5;
 
-    // Rapor
     private DateTime _lastReportDate = DateTime.Today;
+
+    private readonly GlobalInputHook _inputHook = new();
 
     public Worker(ILogger<Worker> logger, IConfiguration config)
     {
@@ -36,7 +34,8 @@ public class Worker : BackgroundService
         if (!string.IsNullOrWhiteSpace(cs))
         {
             CentralDbHelper.Configure(cs);
-            SyncService.Configure(logger);
+            AccessSyncHelper.Configure(cs);
+            SyncService.Configure(logger, cs);
         }
         else
         {
@@ -66,7 +65,6 @@ public class Worker : BackgroundService
             if (IdleDetector.IsIdle()) _idleSeconds++;
             else                       _activeSeconds++;
 
-            // ── Uygulama değişimi ────────────────────────────────────────────
             if (rawProcess != _currentApp)
             {
                 FlushCurrent();
@@ -77,21 +75,18 @@ public class Worker : BackgroundService
                 _idleSeconds   = 0;
                 _lastFlushTime = DateTime.Now;
             }
-            // ── Aynı uygulama — 60 sn periyodik kayıt ───────────────────────
             else if ((DateTime.Now - _lastFlushTime).TotalSeconds >= FlushIntervalSec)
             {
                 FlushCurrent(periodic: true);
                 _lastFlushTime = DateTime.Now;
             }
 
-            // ── SQL Server sync (5 dk, arka planda) ─────────────────────────
             if ((DateTime.Now - _lastSyncTime).TotalMinutes >= SyncIntervalMin)
             {
                 _lastSyncTime = DateTime.Now;
                 _ = Task.Run(SyncService.TrySync, stoppingToken);
             }
 
-            // ── Gün dönümü raporu ────────────────────────────────────────────
             if (DateTime.Today > _lastReportDate)
             {
                 GenerateScheduledReports(_lastReportDate);
@@ -102,13 +97,9 @@ public class Worker : BackgroundService
         }
 
         FlushCurrent();
-        SyncService.TrySync(); // kapanmadan önce son sync
+        SyncService.TrySync();
         _inputHook.Dispose();
     }
-
-    // ── Yardımcılar ──────────────────────────────────────────────────────────
-
-    private readonly GlobalInputHook _inputHook = new();
 
     private void FlushCurrent(bool periodic = false)
     {
@@ -121,16 +112,9 @@ public class Worker : BackgroundService
         var appName = AppFilter.Resolve(_currentApp, _currentTitle) ?? _currentApp;
 
         DatabaseHelper.Insert(
-            _username,
-            _computerName,
-            _sessionType,
-            appName,
-            _currentTitle,
-            durationSec,
-            _activeSeconds,
-            _idleSeconds,
-            keys,
-            mouse);
+            _username, _computerName, _sessionType,
+            appName, _currentTitle,
+            durationSec, _activeSeconds, _idleSeconds, keys, mouse);
 
         if (periodic)
         {
