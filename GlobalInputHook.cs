@@ -64,7 +64,6 @@ public class GlobalInputHook : IDisposable
             _keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc, hMod, 0);
             _mouseHook = SetWindowsHookEx(WH_MOUSE_LL, _mouseProc, hMod, 0);
 
-            // Hook'ların çalışması için mesaj döngüsü gerekiyor
             while (GetMessage(out MSG msg, IntPtr.Zero, 0, 0))
             {
                 TranslateMessage(ref msg);

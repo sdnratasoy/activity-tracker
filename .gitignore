@@ -27,6 +27,14 @@ Reports/
 # dotnet user secrets
 secrets.json
 
+# Yerel bağlantı ayarları (gerçek DB yolu/şifre içerir)
+appsettings.Development.json
+appsettings.Local.json
+
+# Access veritabanı dosyaları
+*.accdb
+*.laccdb
+
 # OS files
 Thumbs.db
 .DS_Store

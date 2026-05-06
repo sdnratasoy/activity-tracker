@@ -41,7 +41,7 @@ public static class SyncService
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning("Sync başarısız, tekrar denenecek: {Msg}", ex.Message);
+            _logger?.LogWarning("Sync başarısız ({Type}), tekrar denenecek.", ex.GetType().Name);
         }
         finally
         {

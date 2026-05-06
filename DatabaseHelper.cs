@@ -118,7 +118,8 @@ public static class DatabaseHelper
 
     public static void DeleteSyncedRecords(IEnumerable<long> ids)
     {
-        var idList = string.Join(",", ids);
+        var validIds = ids.Where(id => id > 0).Select(id => id.ToString("D"));
+        var idList   = string.Join(",", validIds);
         if (string.IsNullOrEmpty(idList)) return;
 
         using var conn = new SqliteConnection(ConnectionString);
