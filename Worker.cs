@@ -65,7 +65,10 @@ public class Worker : BackgroundService
             if (IdleDetector.IsIdle()) _idleSeconds++;
             else                       _activeSeconds++;
 
-            if (rawProcess != _currentApp)
+            var resolvedNew     = AppFilter.Resolve(rawProcess, rawTitle)     ?? rawProcess;
+            var resolvedCurrent = AppFilter.Resolve(_currentApp, _currentTitle) ?? _currentApp;
+
+            if (rawProcess != _currentApp || resolvedNew != resolvedCurrent)
             {
                 FlushCurrent();
                 _currentApp    = rawProcess;
